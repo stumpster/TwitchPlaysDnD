@@ -1,0 +1,30 @@
+{ 
+  "params": {
+    "app_id": "fill-me-in",
+    "app_secret": "fill-me-in",
+    "target_channel": "fill-me-in",
+    "bot_name": "fill-me-in",
+    "bot_token": "fill-me-in"
+  },
+  "characters": {
+    "character_name": {
+      "x_coord": "fill-me-in",
+      "y_coord": "fill-me-in",
+      "image": "fill-me-in",
+      "voice": "fill-me-in"
+    }
+  },
+  "obs_settings": {
+    "host": "localhost",
+    "port": 4455,
+    "password": "fill-me-in",
+    "scene": "fill-me-in",
+    "source": "fill-me-in",
+    "local_filestore": "fill-me-in"
+  },
+  "cloud-settings": {
+    "aws_access_key_id": "fill-me-in",
+    "aws_secret_access_key": "fill-me-in",
+    "aws_region": "fill-me-in"
+  }
+}

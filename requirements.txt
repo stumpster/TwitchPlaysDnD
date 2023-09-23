@@ -1,0 +1,4 @@
+boto3==1.28.52
+librosa==0.10.1
+obsws_python==1.6.0
+twitchAPI==3.11.0
