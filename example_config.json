@@ -6,17 +6,18 @@
   },
   "characters": {
     "character_name": {
-      "voice": "fill-me-in"
+      "voice": "fill-me-in",
+      "opacity_filter": "Opacity"
     }
   },
   "dice_settings": {
     "dice_number": 1,
     "dice_sides": 20,
     "obs_dice_animation_name": "Dice Animation",
-    "obs_dice_animation_length": 2.2,
+    "obs_dice_animation_length": 2,
     "obs_dice_background_name": "Dice Background",
     "obs_dice_result_name": "Dice Result",
-    "obs_dice_result_length": 8
+    "obs_dice_result_length": 5
   },
   "obs_settings": {
     "host": "localhost",

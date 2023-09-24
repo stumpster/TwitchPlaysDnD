@@ -15,7 +15,21 @@ class Character:
     self.image_item_id = utils.getItemId(self.name + " Image")
     self.message_text_item_id = utils.getItemId(self.name + " Chat")
     self.player_text_item_id = utils.getItemId(self.name + " Player")
-  
+
+    self.opacity_filter = utils.config["characters"][self.name]["opacity_filter"]
+
+    # check to see if the character text file exists, if not create it
+    if not os.path.exists("local/" + self.name + ".txt"):
+      with open("local/" + self.name + ".txt", "w") as f:
+        f.write("")
+      print("Created " + self.name + ".txt. Check OBS to make sure the text source is set up correctly.")
+
+    #check to see if the character player text file exists, if not create it
+    if not os.path.exists("local/" + self.name + "player.txt"):
+      with open("local/" + self.name + "player.txt", "w") as f:
+        f.write("")
+      print("Created " + self.name + "player.txt. Check OBS to make sure the text source is set up correctly.")
+
   def getName(self):
     return self.name
   
@@ -40,9 +54,37 @@ class Character:
   # shake the character for the length of the recording to simulate talking
     end_time = time.time() + length
     while time.time() < end_time:
-      utils.obsClient.set_scene_item_transform(scene_name=utils.config["obs_settings"]["scene_name"], item_id=self.image_item_id, transform={'rotation': random.uniform(-2.0, 2.0)})
+      utils.obsClient.set_scene_item_transform(
+        scene_name=utils.config["obs_settings"]["scene_name"],
+        item_id=self.image_item_id,
+        transform={'rotation': random.uniform(-2.0, 2.0)}
+      )
       time.sleep(0.04)
-    utils.obsClient.set_scene_item_transform(scene_name=utils.config["obs_settings"]["scene_name"], item_id=self.image_item_id, transform={'rotation': 0.0})
+
+    utils.obsClient.set_scene_item_transform(
+      scene_name=utils.config["obs_settings"]["scene_name"],
+      item_id=self.image_item_id,
+      transform={'rotation': 0.0}
+    )
+
+  def pulseCharacter(self, length):
+    # pulse the character using the opacity to simulate talking
+    temp = utils.obsClient.get_source_filter(self.name + " Image", "Opacity")
+    print(temp)
+    
+    end_time = time.time() + length
+    while time.time() < end_time:
+      utils.obsClient.set_source_filter_settings(
+        source_name=self.name + " Image",
+        filter_name=self.opacity_filter,
+        settings={'opacity': random.uniform(0.35, 1.0)}
+      )
+      time.sleep(0.05)
+    utils.obsClient.set_source_filter_settings(
+      source_name=self.name + " Image",
+      filter_name=self.opacity_filter,
+      settings={'opacity': 1.0}
+    )
 
   def writeMessageTextAndSpeak(self, message):
     with open("local/" + self.name + ".txt", "w") as f:
@@ -68,7 +110,10 @@ class Character:
     if sys.platform == "win32":
       lengthOfRecording = librosa.get_duration(path="local/" + self.name + '.mp3')
       os.startfile(os.getcwd() + "/local/" + self.name + '.mp3')
-      self.shakeCharacter(lengthOfRecording)
+      # By default the character pulse functionality is enabled. 
+      # Comment out the following line to disable it and uncomment the line after it to enable shaking.
+      self.pulseCharacter(lengthOfRecording)
+      # self.shakeCharacter(lengthOfRecording)
     else:
       # The following works on macOS and Linux. (Darwin = mac, xdg-open = linux).
       opener = "open" if sys.platform == "darwin" else "xdg-open"

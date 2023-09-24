@@ -3,6 +3,7 @@ from twitchAPI.oauth import UserAuthenticator
 from twitchAPI.types import AuthScope, ChatEvent
 from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 import asyncio
+import random
 import json
 import os
 import time
@@ -34,11 +35,8 @@ async def on_ready(ready_event: EventData):
 # this will be called whenever a message in a channel was send by either the bot OR another user
 async def on_message(msg: ChatMessage):
   #test the time that the message takes to process
-  start = time.time()
   ChatManager.handleMessage(msg.user.name, msg.text)
   print(f'in {msg.room.name}, {msg.user.name} said: {msg.text}')
-  end = time.time() - start
-  print(f"Time to process: {end}")
 
 # will roll the dice based on the config set up in the JSON file
 async def roll_command(cmd: ChatCommand):

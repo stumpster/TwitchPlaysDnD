@@ -14,7 +14,7 @@ Inspired by DougDoug's 'Twitch Plays D&amp;D'
 1. Create a Twitch chat bot application at the [Twitch Developers](https://dev.twitch.tv/console/apps) page.
 1. Set the OAuth Redirect URL to `http://localhost:17563`.
 1. Make a copy of the `example_config.json` file and rename it to `config.json`.
-1. Copy and paste the `Client ID` and `Client Secret` into this `config.json` file in the `app_id` and `app_secret` sections.
+1. Copy and paste the `Client ID` and `Client Secret` from the Twitch application management page into the `config.json` file in the `app_id` and `app_secret` sections.
 1. Add your Twitch channel to the `target_channel`.
 
 ## OBS
@@ -24,6 +24,7 @@ Inspired by DougDoug's 'Twitch Plays D&amp;D'
 1. Set your `Scene` name in `config.json`.
 1. In order for dice rolling to work you will need to have an dice animation, static dice image, and a text field set up as sources inside OBS. By default, these OBS sources are expected to be named `Dice Animation`, `Dice Background`, and `Dice Result` respectively. You can change these expected source names in the `config.json` file if you would like. Edit the `obs_dice_animation_length` to match your animation length and the `obs_dice_result_length` for how long you would like the result to be displayed.
 1. In the `characters` section of `config.json` you will need to give your characters a name and assign them a voice (voices are covered below in the [AWS](#aws) section). In order for the character to move an image while they are talking the OBS image source should be named `<character> Image`. As an example, if I set up a character named `Steven` then the OBS image associated with that character should be named `Steven Image`.
+1. In OBS your character image will also need to have a Color Correction filter assigned to it. By default, this is expected to be named `Opacity` but you can change this name in the `config.json` file if you would like.
 
 ## AWS
 
