@@ -6,7 +6,7 @@ with open('config.json') as f:
 
 obsClient = obs.ReqClient(host=config["obs_settings"]["host"], port=config["obs_settings"]["port"], password=config["obs_settings"]["password"])
 
-def add_newlines(message, char_limit=30):
+def addNewlines(message, char_limit=30):
     # Add newlines to a message every char_limit characters without splitting words.
     words = message.split()
     lines = []

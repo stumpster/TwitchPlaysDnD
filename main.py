@@ -5,8 +5,9 @@ from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 import asyncio
 import json
 import os
-import handlechat
 import time
+from handlechat import ChatManager
+
 
 # load config file with our api and channel configuration
 # use example_config.json to create your own config file
@@ -18,6 +19,9 @@ APP_ID = config["params"]["app_id"]
 APP_SECRET = config["params"]["app_secret"]
 TARGET_CHANNEL = config["params"]["target_channel"]
 USER_SCOPE = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT]
+
+# create chat manager
+ChatManager = ChatManager()
 
 # this will be called when the event READY is triggered, which will be on bot start
 async def on_ready(ready_event: EventData):
@@ -31,7 +35,7 @@ async def on_ready(ready_event: EventData):
 async def on_message(msg: ChatMessage):
   #test the time that the message takes to process
   start = time.time()
-  handlechat.handleMessage(msg.user.name, msg.text)
+  ChatManager.handleMessage(msg.user.name, msg.text)
   print(f'in {msg.room.name}, {msg.user.name} said: {msg.text}')
   end = time.time() - start
   print(f"Time to process: {end}")
@@ -39,24 +43,27 @@ async def on_message(msg: ChatMessage):
 # will roll the dice based on the config set up in the JSON file
 async def roll_command(cmd: ChatCommand):
   if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
-    handlechat.rollDice(2,6)
+    if cmd.parameter == '':
+      ChatManager.rollDice()
+    else:
+      ChatManager.rollDice(int(cmd.parameter.split('d')[0]), int(cmd.parameter.split('d')[1]))
 
 # will remove all current users and add new ones to characters
 async def swap_command(cmd: ChatCommand):
   if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
-    handlechat.changeUsers()
+    ChatManager.changeUsers()
     await cmd.reply('Swapping users!')
 
 # will mute all chat messages
 async def mute_command(cmd: ChatCommand):
   if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
-    handlechat.muteChat()
+    ChatManager.muteCharacters()
     await cmd.reply('Stopping voice chat')
 
 # will unmute all chat messages
 async def unmute_command(cmd: ChatCommand):
   if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
-    handlechat.unmuteChat()
+    ChatManager.unmuteCharacters()
     await cmd.reply('Resuming voice chat')
 
 # this is where we set up the bot
@@ -86,6 +93,7 @@ async def run():
   # we are done with our setup, lets start this bot up!
   chat.start()
 
+  # create local directory if it doesn't exist
   os.makedirs("local", exist_ok=True)
 
   # lets run till we press enter in the console
@@ -99,5 +107,3 @@ async def run():
 
 # lets run our setup
 asyncio.run(run())
-
-# handlechat.handleMessage("testuser", "test message test message")

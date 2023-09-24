@@ -13,7 +13,7 @@ Inspired by DougDoug's 'Twitch Plays D&amp;D'
 
 1. Create a Twitch chat bot application at the [Twitch Developers](https://dev.twitch.tv/console/apps) page.
 1. Set the OAuth Redirect URL to `http://localhost:17563`.
-1. Make a copy of the `example_config.json` file and name it `config.json`.
+1. Make a copy of the `example_config.json` file and rename it to `config.json`.
 1. Copy and paste the `Client ID` and `Client Secret` into this `config.json` file in the `app_id` and `app_secret` sections.
 1. Add your Twitch channel to the `target_channel`.
 
@@ -41,3 +41,18 @@ Inspired by DougDoug's 'Twitch Plays D&amp;D'
     1. Click on `Local code`, click `Next`, and then click `Create access key`.
     1. Copy the access key and secret access key to the `config.json` fields under `aws_settings`.
 1. Modify your `character` voices in `config.json` according to the voices that you would like to use from the [AWS Polly voicelist](https://docs.aws.amazon.com/polly/latest/dg/voicelist.html). By default, only voices that are available as `Standard Voices` can be used since these have much more AWS free credits available.
+
+# Chat Commands
+
+The owner of the channel can send the following commands in their Twitch chat to facilitate running games:
+
+- !roll
+    - This will roll the default dice that you have listed in the `config.json` file. By default, this is set in the `example_config.json` to be 1d20.
+- !roll `X`d`Y`
+    - This will roll X dice of Y sides. As an example, `!roll 2d6` will roll 2 six-sided dice.
+- !swap
+    - This will remove all current users from characters and assign new ones from users who have been active in chat over the last five minutes
+- !mute
+    - This will prevent new voice and text for the characters from being processed (the messages sent while muted will be lost)
+- !unmute
+    - Undoes the !mute command

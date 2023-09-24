@@ -31,6 +31,7 @@ class Character:
   def setPlayer(self, player):
     print("Changing " + self.name + " to " + player)
     self.player = player
+
     with open("local/" + self.name + "player.txt", "w") as f:
       print("Writing to " + self.name + "player.txt")
       f.write(player)
@@ -46,10 +47,10 @@ class Character:
   def writeMessageTextAndSpeak(self, message):
     with open("local/" + self.name + ".txt", "w") as f:
       print("Writing to " + self.name + "chat.txt")
-      f.write(message)
+      f.write(utils.addNewlines(message))
 
     #sleep for a bit to make sure the file is written and updated in OBS
-    time.sleep(0.2)
+    time.sleep(0.25)
 
     polly_client = boto3.Session(
       aws_access_key_id = utils.config["aws_settings"]["aws_access_key_id"],                     
