@@ -27,7 +27,6 @@ async def on_ready(ready_event: EventData):
   await ready_event.chat.join_room(TARGET_CHANNEL)
   # you can do other bot initialization things in here
 
-
 # this will be called whenever a message in a channel was send by either the bot OR another user
 async def on_message(msg: ChatMessage):
   #test the time that the message takes to process
@@ -37,19 +36,28 @@ async def on_message(msg: ChatMessage):
   end = time.time() - start
   print(f"Time to process: {end}")
 
-# this will be called whenever the !info command is issued
-async def info_command(cmd: ChatCommand):
-  await cmd.reply('Testing shit that probably does not work')
-
+# will roll the dice based on the config set up in the JSON file
 async def roll_command(cmd: ChatCommand):
   if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
     handlechat.rollDice(2,6)
 
+# will remove all current users and add new ones to characters
 async def swap_command(cmd: ChatCommand):
   if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
     handlechat.changeUsers()
     await cmd.reply('Swapping users!')
 
+# will mute all chat messages
+async def mute_command(cmd: ChatCommand):
+  if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
+    handlechat.muteChat()
+    await cmd.reply('Stopping voice chat')
+
+# will unmute all chat messages
+async def unmute_command(cmd: ChatCommand):
+  if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
+    handlechat.unmuteChat()
+    await cmd.reply('Resuming voice chat')
 
 # this is where we set up the bot
 async def run():
@@ -72,6 +80,8 @@ async def run():
   # you can directly register commands and their handlers, this will register the !info command
   chat.register_command('roll', roll_command)
   chat.register_command('swap', swap_command)
+  chat.register_command('mute', mute_command)
+  chat.register_command('unmute', unmute_command)
 
   # we are done with our setup, lets start this bot up!
   chat.start()
