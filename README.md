@@ -30,16 +30,16 @@ Inspired by DougDoug's 'Twitch Plays D&amp;D'
 **Note: Cloud computing can incur costs, make sure you understand the [AWS Polly pricing](https://aws.amazon.com/polly/pricing/) before configuring.**
 
 1. Create a new [AWS account](https://aws.amazon.com/).
-1. Create an IAM user in AWS to access AWS Polly through by: **These steps are not mandatory, but it is highly recommended that you DO NOT create an access key on the root account.**
-  1. In the AWS console search for the `IAM` component and click on it.
-  1. Click on `Users` and click on `Create User`.
-  1. Give this user a name (e.g. `Polly`) and click `Next`.
-  1. Click on `Attach policies directly` and search for `AmazonPollyFullAccess`. Select it and click `Next`.
-  1. Click `Create User`
-  1. Back in the IAM Users page, click on the new user and click on `Security Credentials`.
-  1. Scroll down and in the `Access Keys` section click on `Create access key`.
-  1. Click on `Local code`, click `Next`, and then click `Create access key`.
-  1. Copy the access key and secret access key to the `config.json` fields under `aws_settings`.
+1. Create an IAM user in AWS to access AWS Polly through by:
+    1. In the AWS console search for the `IAM` component and click on it.
+    1. Click on `Users` and click on `Create User`.
+    1. Give this user a name (e.g. `Polly`) and click `Next`.
+    1. Click on `Attach policies directly` and search for `AmazonPollyFullAccess`. Select it and click `Next`.
+    1. Click `Create User`
+    1. Back in the IAM Users page, click on the new user and click on `Security Credentials`.
+    1. Scroll down and in the `Access Keys` section click on `Create access key`.
+    1. Click on `Local code`, click `Next`, and then click `Create access key`.
+    1. Copy the access key and secret access key to the `config.json` fields under `aws_settings`.
 1. Modify your `character` voices in `config.json` according to the voices that you would like to use from the [AWS Polly voicelist](https://docs.aws.amazon.com/polly/latest/dg/voicelist.html). By default, only voices that are available as `Standard Voices` can be used since these have much more AWS free credits available.
 
 TODO:
