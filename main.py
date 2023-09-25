@@ -8,6 +8,7 @@ import json
 import os
 import time
 from handlechat import ChatManager
+from chatgptdm import ChatGPTDM
 
 
 # load config file with our api and channel configuration
@@ -22,7 +23,8 @@ TARGET_CHANNEL = config["params"]["target_channel"]
 USER_SCOPE = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT]
 
 # create chat manager
-ChatManager = ChatManager()
+# ChatManager = ChatManager()
+ChatGPTDM = ChatGPTDM()
 
 # this will be called when the event READY is triggered, which will be on bot start
 async def on_ready(ready_event: EventData):
@@ -104,4 +106,9 @@ async def run():
 
 
 # lets run our setup
-asyncio.run(run())
+# asyncio.run(run())
+
+# wait to get a message from the user
+while True:
+  message = input("Press enter to start a message: ")
+  ChatGPTDM.recordNewMessage()

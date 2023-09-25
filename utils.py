@@ -27,5 +27,6 @@ def addNewlines(message, char_limit=30):
 
 def getItemId(source):
   # get the integer of the item id from the source name
+  print("Getting item id for " + source)
   item_id = obsClient.get_scene_item_id(scene_name=config["obs_settings"]["scene_name"], source_name=source)
   return item_id.scene_item_id

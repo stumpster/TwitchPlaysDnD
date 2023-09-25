@@ -16,7 +16,7 @@ class ChatManager:
       config = json.load(f)
     
     for character in config["characters"]:
-      self.charList.append(Character(character, config["characters"][character]["voice"]))
+      self.charList.append(Character(character))
 
     self.numDice = config["dice_settings"]["dice_number"]
     self.numSides = config["dice_settings"]["dice_sides"]

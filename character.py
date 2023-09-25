@@ -7,15 +7,15 @@ import time
 import utils
 
 class Character:
-  def __init__(self, name, voice):
+  def __init__(self, name):
     self.name = name
-    self.voice = voice
     self.player = ""
 
     self.image_item_id = utils.getItemId(self.name + " Image")
     self.message_text_item_id = utils.getItemId(self.name + " Chat")
     self.player_text_item_id = utils.getItemId(self.name + " Player")
 
+    self.voice = utils.config["characters"][self.name]["voice"]
     self.opacity_filter = utils.config["characters"][self.name]["opacity_filter"]
 
     # check to see if the character text file exists, if not create it
@@ -69,8 +69,6 @@ class Character:
 
   def pulseCharacter(self, length):
     # pulse the character using the opacity to simulate talking
-    temp = utils.obsClient.get_source_filter(self.name + " Image", "Opacity")
-    print(temp)
     
     end_time = time.time() + length
     while time.time() < end_time:
@@ -88,7 +86,6 @@ class Character:
 
   def writeMessageTextAndSpeak(self, message):
     with open("local/" + self.name + ".txt", "w") as f:
-      print("Writing to " + self.name + "chat.txt")
       f.write(utils.addNewlines(message))
 
     #sleep for a bit to make sure the file is written and updated in OBS
