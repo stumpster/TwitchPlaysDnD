@@ -3,7 +3,6 @@ from twitchAPI.oauth import UserAuthenticator
 from twitchAPI.types import AuthScope, ChatEvent
 from twitchAPI.chat import Chat, EventData, ChatMessage, ChatSub, ChatCommand
 import asyncio
-import random
 import json
 import os
 import time
@@ -21,6 +20,11 @@ APP_SECRET = config["params"]["app_secret"]
 TARGET_CHANNEL = config["params"]["target_channel"]
 USER_SCOPE = [AuthScope.CHAT_READ, AuthScope.CHAT_EDIT]
 
+# remove all mp3 files in the local directory
+filelist = [ f for f in os.listdir("local") if f.endswith(".mp3") ]
+for f in filelist:
+  os.remove(os.path.join("local", f))
+
 # create chat manager
 ChatManager = ChatManager()
 
@@ -35,16 +39,25 @@ async def on_ready(ready_event: EventData):
 # this will be called whenever a message in a channel was send by either the bot OR another user
 async def on_message(msg: ChatMessage):
   #test the time that the message takes to process
-  ChatManager.handleMessage(msg.user.name, msg.text)
   print(f'in {msg.room.name}, {msg.user.name} said: {msg.text}')
+  ChatManager.handleMessage(user=msg.user.name, message=msg.text)
 
 # will roll the dice based on the config set up in the JSON file
 async def roll_command(cmd: ChatCommand):
   if cmd.user.badges != None and 'broadcaster' in cmd.user.badges:
+    print(cmd.parameter)
     if cmd.parameter == '':
       ChatManager.rollDice()
+    elif '+' in cmd.parameter:
+      numDice = int(cmd.parameter.split('d')[0])
+      numSides = int(cmd.parameter.split('d')[1].split('+')[0])
+      bonus = int(cmd.parameter.split('+')[1])
+      print("Rolling with: " + str(numDice) + "d" + str(numSides) + "+" + str(bonus))
+      ChatManager.rollDice(numDice, numSides, bonus)
     else:
-      ChatManager.rollDice(int(cmd.parameter.split('d')[0]), int(cmd.parameter.split('d')[1]))
+      numDice = int(cmd.parameter.split('d')[0])
+      numSides = int(cmd.parameter.split('d')[1])
+      ChatManager.rollDice(numDice, numSides)
 
 # will remove all current users and add new ones to characters
 async def swap_command(cmd: ChatCommand):
@@ -95,12 +108,10 @@ async def run():
   os.makedirs("local", exist_ok=True)
 
   # lets run till we press enter in the console
-  try:
-    input('press ENTER to stop\n')
-  finally:
-    # now we can close the chat bot and the twitch api client
-    chat.stop()
-    await twitch.close()
+  while True:
+    # call for updates
+    time.sleep(0.1)
+    ChatManager.updateTimer()
 
 
 # lets run our setup
