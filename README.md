@@ -1,7 +1,7 @@
 # TwitchPlaysDnD
 Inspired by DougDoug's 'Twitch Plays D&amp;D' 
 
-# Setup
+# Setup for player-led game
 
 ## Library
 
@@ -57,3 +57,38 @@ The owner of the channel can send the following commands in their Twitch chat to
     - This will prevent new voice and text for the characters from being processed (the messages sent while muted will be lost)
 - !unmute
     - Undoes the !mute command
+
+# Setup for ChatGPT-led game
+
+*Note: Running a ChatGPT-led game will have some cost associated with it since using the OpenAI API has an associated (albeit low) cost. With the default GPT-3.5 the maximum cost per message and response should be limited to $0.014. This is enough for approximately ~45 minutes of streaming before any history is lost.*
+
+Follow steps above to set up Twitch, OBS, and AWS with the following changes:
+1. Instead of having specific characters set in OBS you will need to have generic image NPC fields `NPC0` to `NPC3` and text fields `NPC0 Chat` to `NPC3 Chat` 
+1. Set up an additional field for `GM` and `GM Chat`
+
+## OpenAI/ChatGPT
+
+1. Open an account over at [OpenAI's platform page](https://platform.openai.com)
+1. Add funds to the account
+1. Generate an API key from your [API key page](https://platform.openai.com/account/api-keys)
+1. Add this field to the `chatgpt_settings` section of your `config.json` and set `enabled` to `true`
+
+## Bing
+
+1. Find your auth cookie using the steps [here](https://github.com/acheong08/BingImageCreator/tree/main#getting-authentication) to use Bing to generate images using DALLE-3.
+1. Add this auth cookie to the `config.json` file in the `bing_settings`
+*Note: This is the default to use since it's free, but a little bit slower than OpenAI.*
+
+# Chat Commands
+
+The owner of the channel can send the following commands in their Twitch chat to facilitate running games:
+- !roll
+    - This will roll the default dice that you have listed in the `config.json` file. By default, this is set in the `example_config.json` to be 1d20.
+- !roll `X`d`Y`
+    - This will roll X dice of Y sides. As an example, `!roll 2d6` will roll 2 six-sided dice.
+
+Any chatters in the channel can submit these commands:
+- !submit
+    - This command will be used by chat to submit actions to the ChatGPT GM. This starts a poll to vote on the next action and will give a shortcut for other chat members to vote on that action using:
+- !`x`
+    - A shortcut for a command will be given (e.g. `!1`, `!2`, etc) and can be used by chat members to vote on the next action

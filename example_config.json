@@ -29,5 +29,12 @@
     "aws_access_key_id": "fill-me-in",
     "aws_secret_access_key": "fill-me-in",
     "aws_region": "fill-me-in"
+  },
+  "chatgpt_settings": {
+    "api_key": "fill-me-in",
+    "enabled": false
+  },
+  "bing_settings": {
+    "auth_cookie": "fill-me-in"
   }
 }

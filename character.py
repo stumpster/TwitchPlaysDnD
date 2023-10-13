@@ -75,9 +75,9 @@ class Character:
       utils.obsClient.set_source_filter_settings(
         source_name=self.name + " Image",
         filter_name=self.opacity_filter,
-        settings={'opacity': random.uniform(0.35, 1.0)}
+        settings={'opacity': random.uniform(0.5, 1.0)}
       )
-      time.sleep(0.05)
+      time.sleep(0.08)
     utils.obsClient.set_source_filter_settings(
       source_name=self.name + " Image",
       filter_name=self.opacity_filter,
@@ -86,7 +86,7 @@ class Character:
 
   def writeMessageTextAndSpeak(self, message):
     with open("local/" + self.name + ".txt", "w") as f:
-      f.write(utils.addNewlines(message))
+      f.write(message)
 
     #sleep for a bit to make sure the file is written and updated in OBS
     time.sleep(0.25)
