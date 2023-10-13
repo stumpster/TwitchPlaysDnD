@@ -72,6 +72,7 @@ Follow steps above to set up Twitch, OBS, and AWS with the following changes:
 1. Add funds to the account
 1. Generate an API key from your [API key page](https://platform.openai.com/account/api-keys)
 1. Add this field to the `chatgpt_settings` section of your `config.json` and set `enabled` to `true`
+1. If you'd like to modify the scenario that ChatGPT is DM'ing for, adjust the `self.systemmsg` in the `chatgptdm.py` file. By default, ChatGPT is presented with the following scenario: `You are a game master who is leading a party though a campaign of Dungeons and Dragons. The players are: a fighter named Roger, a cleric named Karrix, and a wizard named Sylvania. They are currently in a tavern. `
 
 ## Bing
 
