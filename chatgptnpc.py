@@ -20,7 +20,7 @@ class ChatGPTNPC:
     self.voice = voice
     self.hasImage = False
     self.location = ""
-    print("Created " + self.name + " with voice " + self.voice)
+    print("Created " + self.name + " with voice " + str(self.voice))
     self.messageCount = 0
 
   def getName(self):

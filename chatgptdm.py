@@ -1,5 +1,6 @@
 import boto3
 import concurrent.futures
+import elevenlabs
 import glob
 import librosa
 import openai
@@ -13,7 +14,8 @@ import utils
 
 class ChatGPTDM:
   def __init__(self):
-    self.api_key = utils.config["chatgpt_settings"]["api_key"]
+    self.openai_api_key = utils.config["chatgpt_settings"]["api_key"]
+    self.eleven_labs_api_key = utils.config["eleven_labs_settings"]["api_key"]
 
     self.systemmsg = '''You are a game master who is leading a party though a campaign of Dungeons and Dragons. 
     The players are: a fighter named Roger, a cleric named Karrix, and a wizard named Sylvania.
@@ -36,9 +38,6 @@ class ChatGPTDM:
 
     # self.character = Character("GM")
 
-    self.NPCList = [ChatGPTNPC("GM", "Joey")]
-    self.NPCList[0].setLocation("GM Image")
-    self.NPCList[0].setHasImage(True)
     self.characterAndNPCNumberMapping = {}
     self.namedMessageCount = {}
     self.conversationOrder = []
@@ -48,18 +47,36 @@ class ChatGPTDM:
 
     # resp = utils.obsClient.get_input_settings(name="GM Image")
 
-    self.polly_client = boto3.Session(
-        aws_access_key_id = utils.config["aws_settings"]["aws_access_key_id"],                     
-        aws_secret_access_key = utils.config["aws_settings"]["aws_secret_access_key"],
-        region_name = utils.config["aws_settings"]["aws_region"]).client('polly')
+    # check in the config.json if the user wants to use AWS or Eleven Labs for voice generation
+    if utils.config["aws_settings"]["enabled"]:
+      self.polly_client = boto3.Session(
+          aws_access_key_id = utils.config["aws_settings"]["aws_access_key_id"],                     
+          aws_secret_access_key = utils.config["aws_settings"]["aws_secret_access_key"],
+          region_name = utils.config["aws_settings"]["aws_region"]).client('polly')
 
-    self.voiceList = ["Nicole", "Russell", "Emma", "Brian", "Raveena", "Ivy", 
-      "Joanna", "Kendra", "Kimberly", "Matthew", "Salli", 
-      "Geraint", "Zeina", "Zhiyu", "Ruben", "Lotte", "Aditi",
-      "Celine", "Mathieu", "Chantal", "Marlene", "Vicki", "Hans",
-      "Carla", "Bianca", "Giorgio", "Mizuki", "Takumi", "Ricardo",
-      "Camila", "Ines", "Cristiano", "Penelope", "Miguel",
-      "Lupe"]
+      self.voiceList = ["Nicole", "Russell", "Emma", "Brian", "Raveena", "Ivy", 
+        "Joanna", "Kendra", "Kimberly", "Matthew", "Salli", 
+        "Geraint", "Zeina", "Zhiyu", "Ruben", "Lotte", "Aditi",
+        "Celine", "Mathieu", "Chantal", "Marlene", "Vicki", "Hans",
+        "Carla", "Bianca", "Giorgio", "Mizuki", "Takumi", "Ricardo",
+        "Camila", "Ines", "Cristiano", "Penelope", "Miguel",
+        "Lupe"]
+      
+      # set default GM voice to Joey for AWS
+      self.NPCList = [ChatGPTNPC("GM", "Joey")]
+
+    elif utils.config["eleven_labs_settings"]["enabled"]:
+      elevenlabs.set_api_key(self.eleven_labs_api_key)
+      self.voiceList = elevenlabs.voices()
+      print (self.voiceList[-3:])
+      # set default GM voice to Antoni for Eleven Labs
+      self.NPCList = [ChatGPTNPC("GM", self.voiceList[6])]
+    else:
+      print("No voice provider enabled. Please enable AWS or Eleven Labs in config.json.")
+      exit()
+    
+    self.NPCList[0].setLocation("GM Image")
+    self.NPCList[0].setHasImage(True)
 
     # print(resp)
 
@@ -111,7 +128,7 @@ class ChatGPTDM:
     print(self.messages)
 
     try:
-      openai.api_key = self.api_key
+      openai.api_key = self.openai_api_key
       response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=self.messages,
@@ -253,15 +270,25 @@ class ChatGPTDM:
     # generate the message
     try:
       print("\nGenerating voice for " + self.NPCList[NPCIndex].getName() + " message " + message + " with id " + str(characterChatId))
-      response = self.polly_client.synthesize_speech(VoiceId=self.NPCList[NPCIndex].getVoice(),
-        OutputFormat='mp3', 
-        Text = message,
-        Engine = 'standard')
+      # if AWS is enabled, use Polly to generate the voice line
+      if utils.config["aws_settings"]["enabled"]:
+        response = self.polly_client.synthesize_speech(VoiceId=self.NPCList[NPCIndex].getVoice(),
+          OutputFormat='mp3', 
+          Text = message,
+          Engine = 'standard')
 
-      print("\nWriting to " + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + ".mp3")
-      file = open("local\\" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + '.mp3', 'wb')
-      file.write(response['AudioStream'].read())
-      file.close()
+        print("\nWriting to " + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + ".mp3")
+        file = open("local\\" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + '.mp3', 'wb')
+        file.write(response['AudioStream'].read())
+        file.close()
+      # otherwise use ElevenLabs to generate the voice line
+      else:
+        elevenlabs.save(
+          elevenlabs.generate(
+            message, self.eleven_labs_api_key, self.NPCList[NPCIndex].getVoice()
+          ),
+          "local\\" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + ".mp3"
+        )
       return
     except:
       print("Error generating message for " + self.NPCList[NPCIndex].getName() + " message " + message + " with id " + str(characterChatId) + "\n")

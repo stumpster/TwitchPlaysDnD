@@ -35,7 +35,7 @@ class ChatManager:
     self.pollStartTime = 0
     self.msgShortcutList = {}
     self.msgShortcutCount = 1
-    self.timerLength = 5
+    self.timerLength = 20
 
     if self.chatGPTDMEnabled:
       self.ChatGPTDM = ChatGPTDM()
@@ -90,12 +90,7 @@ class ChatManager:
         self.activeChars[user].writeMessageTextAndSpeak(message)
 
   def updatePollList(self):
-    # update the poll list
-    # if the poll is over, print the results and reset the poll
-    with open("local/timer.txt", "w") as f:
-      timeLeft = int(self.timerLength - (time.time() - self.pollStartTime))
-      f.write(str(timeLeft))
-    
+    # update the poll list   
     with open("local/poll.txt", "w") as f:
       for entry in sorted(self.actionPollList.items(), key=lambda x:x[1], reverse=True):
         f.write(str(utils.getKey(entry[0],self.msgShortcutList)) + " " + entry[0] + ": " + str(entry[1]) + "\n")
@@ -103,10 +98,10 @@ class ChatManager:
   def startPoll(self):
     self.pollStarted = True
     self.pollStartTime = time.time()
-    utils.showItem("Timer")
     with open("local/timer.txt", "w") as f:
       timeLeft = int(self.timerLength - (time.time() - self.pollStartTime))
       f.write(str(timeLeft))
+    utils.showItem("Timer")
 
   def stopPoll(self):
     self.pollStarted = False
@@ -118,21 +113,22 @@ class ChatManager:
   def updateTimer(self):
     if self.chatGPTDMEnabled:
       if self.pollStarted:
-        with open("local/timer.txt", "w") as f:
-          timeLeft = int(self.timerLength - (time.time() - self.pollStartTime))
-          f.write(str(timeLeft))
-          if timeLeft < 0:
-            self.stopPoll()
-            # handle the poll results
-            print("Poll is over sending results")
-            print(self.actionPollList)
-            if self.actionPollList != {}:
-              messageToSend = sorted(self.actionPollList.items(), key=lambda x:x[1], reverse=True)[0][0]
-              print(messageToSend)
-              with open("local/poll.txt", "w") as f:
-                f.write("Winning action: \n" + messageToSend)
-              self.ChatGPTDM.chatInput(messageToSend)
-              self.resetPoll()
+        timeLeft = int(self.timerLength - (time.time() - self.pollStartTime))
+        if timeLeft < 0:
+          self.stopPoll()
+          # handle the poll results
+          print("Poll is over sending results")
+          print(self.actionPollList)
+          if self.actionPollList != {}:
+            messageToSend = sorted(self.actionPollList.items(), key=lambda x:x[1], reverse=True)[0][0]
+            print(messageToSend)
+            with open("local/poll.txt", "w") as f:
+              f.write("Winning action: \n" + messageToSend)
+            self.ChatGPTDM.chatInput(messageToSend)
+            self.resetPoll()
+        else:
+          with open("local/timer.txt", "w") as f:
+            f.write(str(timeLeft))
 
   def resetPoll(self):
     self.actionPollList = {}
