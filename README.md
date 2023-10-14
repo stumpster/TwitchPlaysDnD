@@ -26,7 +26,9 @@ Inspired by DougDoug's 'Twitch Plays D&amp;D'
 1. In the `characters` section of `config.json` you will need to give your characters a name and assign them a voice (voices are covered below in the [AWS](#aws) section). In order for the character to move an image while they are talking the OBS image source should be named `<character> Image`. As an example, if I set up a character named `Steven` then the OBS image associated with that character should be named `Steven Image`.
 1. In OBS your character image will also need to have a Color Correction filter assigned to it. By default, this is expected to be named `Opacity` but you can change this name in the `config.json` file if you would like.
 
-## AWS
+## Voice - Either ElevenLabs or AWS
+
+### AWS
 
 **Note: Cloud computing can incur costs, make sure you understand the [AWS Polly pricing](https://aws.amazon.com/polly/pricing/) before configuring.**
 
@@ -42,6 +44,16 @@ Inspired by DougDoug's 'Twitch Plays D&amp;D'
     1. Click on `Local code`, click `Next`, and then click `Create access key`.
     1. Copy the access key and secret access key to the `config.json` fields under `aws_settings`.
 1. Modify your `character` voices in `config.json` according to the voices that you would like to use from the [AWS Polly voicelist](https://docs.aws.amazon.com/polly/latest/dg/voicelist.html). By default, only voices that are available as `Standard Voices` can be used since these have much more AWS free credits available.
+
+### ElevenLabs
+
+**Note: ElevenLabs is easier to set up and generally has better voices but offers *much* less free usage than AWS. The free tier of ElevenLabs only allows for 10000 characters instead of AWS which allows for millions.**
+
+1. Create a new [ElevenLabs account](https://elevenlabs.io/text-to-speech)
+1. Click on your profile in the top right.
+1. Copy your API key to the `config.json` file in the `eleven_labs_settings` section.
+1. In the `config.json` mark the `enabled` field in AWS to `false` and the `enabled` field for Eleven Labs to `true`.
+1. Modify your `character` voices in `config.json` according to the names of the voices in Eleven Labs.
 
 # Chat Commands
 
@@ -64,6 +76,7 @@ The owner of the channel can send the following commands in their Twitch chat to
 
 Follow steps above to set up Twitch, OBS, and AWS with the following changes:
 1. Instead of having specific characters set in OBS you will need to have generic image NPC fields `NPC0` to `NPC3` and text fields `NPC0 Chat` to `NPC3 Chat` 
+1. Ignore the `character` fields in the `config.json` as these will not be used, ChatGPT will make new characters and automatically assign voices to them as they are created.
 1. Set up an additional field for `GM` and `GM Chat`
 
 ## OpenAI/ChatGPT
