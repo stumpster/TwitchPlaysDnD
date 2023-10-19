@@ -15,7 +15,12 @@ class Character:
     self.message_text_item_id = utils.getItemId(self.name + " Chat")
     self.player_text_item_id = utils.getItemId(self.name + " Player")
 
-    self.voice = utils.config["characters"][self.name]["voice"]
+    # if AWS is enabled, we can use the name of the voice
+    if utils.config["aws_settings"]["enabled"]:
+      self.voice = utils.config["characters"][self.name]["voice"]
+    # otherwise, we need to get the voice class from the name of the voice for Eleven Labs
+    else:
+      self.voice = utils.getVoiceClassFromName(utils.config["characters"][self.name]["voice"])
     self.opacity_filter = utils.config["characters"][self.name]["opacity_filter"]
 
     # check to see if the character text file exists, if not create it
@@ -91,19 +96,8 @@ class Character:
     #sleep for a bit to make sure the file is written and updated in OBS
     time.sleep(0.25)
 
-    polly_client = boto3.Session(
-      aws_access_key_id = utils.config["aws_settings"]["aws_access_key_id"],                     
-      aws_secret_access_key = utils.config["aws_settings"]["aws_secret_access_key"],
-      region_name = utils.config["aws_settings"]["aws_region"]).client('polly')
+    utils.createVoiceLine(self.voice, message, self.name)
 
-    response = polly_client.synthesize_speech(VoiceId=self.voice,
-      OutputFormat='mp3', 
-      Text = message,
-      Engine = 'standard')
-
-    file = open("local/" + self.name + '.mp3', 'wb')
-    file.write(response['AudioStream'].read())
-    file.close()
     if sys.platform == "win32":
       lengthOfRecording = librosa.get_duration(path="local/" + self.name + '.mp3')
       os.startfile(os.getcwd() + "/local/" + self.name + '.mp3')

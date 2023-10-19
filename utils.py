@@ -1,4 +1,6 @@
 import BingImageCreator
+import boto3
+import elevenlabs
 import json
 import obsws_python as obs
 import openai
@@ -16,6 +18,14 @@ bingImageCreator = BingImageCreator.ImageGen(
     auth_cookie=config["bing_settings"]["auth_cookie"],
     auth_cookie_SRCHHPGUSR=None
 )
+
+if config["aws_settings"]["enabled"]:
+  polly_client = boto3.Session(
+    aws_access_key_id = config["aws_settings"]["aws_access_key_id"],                     
+    aws_secret_access_key = config["aws_settings"]["aws_secret_access_key"],
+    region_name = config["aws_settings"]["aws_region"]).client('polly')
+else:
+  elevenlabs.set_api_key(config["eleven_labs_settings"]["api_key"])
 
 def getItemId(source):
   """
@@ -141,3 +151,50 @@ def generateImage(name, characterDescription, useOpenAI=False):
       rgb_im.save("local/" + name + ".png")
       os.remove("local/" + name + "_0.jpeg")
   return
+
+def createVoiceLine(voice, message, filename):
+  """
+  Synthesizes speech using Amazon Polly or ElevenLabs and saves the resulting audio file to disk.
+
+  Args:
+    voice (str): The name of the voice to use for the speech synthesis.
+    message (str): The text to synthesize into speech.
+    filename (str): The name of the file to save the resulting audio to.
+
+  Returns:
+    None
+  """
+  if config["aws_settings"]["enabled"]:
+    response = polly_client.synthesize_speech(VoiceId=voice,
+      OutputFormat='mp3', 
+      Text = message,
+      Engine = 'standard')
+
+    print("\nWriting to " + filename + ".mp3")
+    file = open("local\\" + filename + '.mp3', 'wb')
+    file.write(response['AudioStream'].read())
+    file.close()
+  # otherwise use ElevenLabs to generate the voice line
+  else:
+    elevenlabs.save(
+      elevenlabs.generate(
+        text=message, voice=voice
+      ),
+      "local\\" + filename + ".mp3"
+    )
+
+def getVoiceClassFromName(name):
+  """
+  Returns the voice for a given voice name.
+
+  Args:
+    name (str): The name of the voice.
+
+  Returns:
+    Voice: The voice for the given voice name.
+  """
+  for x in elevenlabs.voices():
+    if x.name == name:
+      return x
+  print("\nVoice not found\n")
+  return None

@@ -6,6 +6,7 @@ import librosa
 import openai
 import os
 import random
+import string
 import time
 
 # from character import Character
@@ -15,38 +16,41 @@ import utils
 class ChatGPTDM:
   def __init__(self):
     self.openai_api_key = utils.config["chatgpt_settings"]["api_key"]
-    self.eleven_labs_api_key = utils.config["eleven_labs_settings"]["api_key"]
 
-    self.systemmsg = '''You are a game master who is leading a party though a campaign of Dungeons and Dragons. 
-    The players are: a fighter named Roger, a cleric named Karrix, and a wizard named Sylvania.
-    They are currently in a tavern. You should describe the scene but limit your description to two sentences.
-    Prompt the players to roll dice to determine the outcome of their actions. After
+    self.systemmsg = '''You are a game master who is leading a party though a campaign of Dungeons and Dragons.'''
+    self.systemmsg += ' The players are: '
+    for name, properties in utils.config["characters"].items():
+      if properties['is_gm'] == False:
+        self.systemmsg += name + ", " + properties['description'] + ", "
+    self.systemmsg += ''' and they are currently in a tavern. You should describe the scene but limit your description to two sentences.
+    While you are playing the game, prompt the players to roll dice to determine the outcome of their actions. After
     prompting the players to roll dice, end the message to indicate that the players should respond. Only one player
     should be prompted to roll dice at a time. If an NPC needs to roll a dice, you should roll the dice for them.
     The players are currently level 3 and should face challenges appropriate to their level.
     Make sure that the challenges the players face are a mixture of combat, traps, puzzles, and social encounters.
-    When you are speaking as an NPC, wrap the characters message inside angle brackets containing the name of the NPC.
-    Chat from an NPC should always be on a new line.
-    For example, if you are speaking as a character named Bob, you would write <Bob> Hello, how are you?
-    You should describe the character. This description should be no more than two sentences.
-    This description should be inside square brackets after the angle brackets containing the name of the character.
-    For example, if the character is a dwarf bartender with an eyepatch, you would write 
-    <Bob> [dwarf bartender with eyepatch] Hello, how are you?
+    When you are speaking as an NPC or the characters are speaking, wrap the characters message inside angle brackets containing the name of the NPC or character.
+    Chat from an NPC or character should always be on a new line. NPCs should be described in two sentences or less in the following format:
+    1. This description should be inside square brackets after the angle brackets containing the name of the character.
+    2. This description should contain whether or not the character is male or female.
+    For example, if the character is a male dwarf bartender with an eyepatch, you would write 
+    <Bob> [male dwarf bartender with eyepatch] Hello, how are you?
     If you are speaking as the game master that text should not be on the same line as text assigned to a character.
     '''
     self.messages = [{"role": "system", "content": self.systemmsg}]
 
     # self.character = Character("GM")
 
+    self.NPCList = []
     self.characterAndNPCNumberMapping = {}
     self.namedMessageCount = {}
     self.conversationOrder = []
     self.currentNPCCount = 0
     self.doingConversation = False
     self.conversationCount = 0
+    self.femaleVoiceList = []
+    self.maleVoiceList = []
 
     # resp = utils.obsClient.get_input_settings(name="GM Image")
-
     # check in the config.json if the user wants to use AWS or Eleven Labs for voice generation
     if utils.config["aws_settings"]["enabled"]:
       self.polly_client = boto3.Session(
@@ -54,29 +58,32 @@ class ChatGPTDM:
           aws_secret_access_key = utils.config["aws_settings"]["aws_secret_access_key"],
           region_name = utils.config["aws_settings"]["aws_region"]).client('polly')
 
-      self.voiceList = ["Nicole", "Russell", "Emma", "Brian", "Raveena", "Ivy", 
-        "Joanna", "Kendra", "Kimberly", "Matthew", "Salli", 
-        "Geraint", "Zeina", "Zhiyu", "Ruben", "Lotte", "Aditi",
-        "Celine", "Mathieu", "Chantal", "Marlene", "Vicki", "Hans",
-        "Carla", "Bianca", "Giorgio", "Mizuki", "Takumi", "Ricardo",
-        "Camila", "Ines", "Cristiano", "Penelope", "Miguel",
-        "Lupe"]
-      
-      # set default GM voice to Joey for AWS
-      self.NPCList = [ChatGPTNPC("GM", "Joey")]
+      self.femaleVoiceList = ["Nicole", "Emma", "Raveena", "Ivy", 
+        "Joanna", "Kendra", "Kimberly", "Salli", "Zeina", "Zhiyu", "Lotte", "Aditi",
+        "Celine",  "Chantal", "Marlene", "Vicki", "Carla", "Bianca", "Mizuki", 
+        "Camila", "Ines", "Penelope", "Lupe"]
+      self.maleVoiceList = ["Russell", "Brian", "Matthew", "Ruben", "Mathieu", "Hans",
+        "Giorgio", "Takumi", "Ricardo", "Cristiano", "Miguel", "Geraint"]
 
     elif utils.config["eleven_labs_settings"]["enabled"]:
-      elevenlabs.set_api_key(self.eleven_labs_api_key)
-      self.voiceList = elevenlabs.voices()
-      print (self.voiceList[-3:])
-      # set default GM voice to Antoni for Eleven Labs
-      self.NPCList = [ChatGPTNPC("GM", self.voiceList[6])]
+      elevenlabs.set_api_key(utils.config["eleven_labs_settings"]["api_key"])
+      tempVoiceList = elevenlabs.voices()
+      for x in tempVoiceList:
+        if x.labels['gender'] == 'female':
+          self.femaleVoiceList.append(x)
+        else:
+          self.maleVoiceList.append(x)
     else:
       print("No voice provider enabled. Please enable AWS or Eleven Labs in config.json.")
       exit()
-    
-    self.NPCList[0].setLocation("GM Image")
-    self.NPCList[0].setHasImage(True)
+
+    for name, properties in utils.config["characters"].items():
+      self.NPCList.append(ChatGPTNPC(name, properties['voice']))
+      self.NPCList[len(self.NPCList)-1].generateCharacterImage(properties['description'])
+      if properties['is_gm']:
+        self.NPCList[len(self.NPCList)-1].setLocation(name)
+        self.NPCList[len(self.NPCList)-1].changeImageToNPC()
+
 
     # print(resp)
 
@@ -122,34 +129,79 @@ class ChatGPTDM:
       None
     """
     self.doingConversation = True
-    self.messages.append({"role": "user", "content": message})
-    
-    print("Sending message to GPT-3")
-    print(self.messages)
-
-    try:
-      openai.api_key = self.openai_api_key
-      response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=self.messages,
+    if message.startswith("Draw: "):
+      message = message.replace("Draw: ", "")
+      # just going to cheat and use the first 5 characters of the message as the name
+      utils.generateImage(message[:5], message)
+      location = self.getNextLocation()
+      utils.obsClient.set_input_settings(
+        name=location,
+        settings={'file': str(os.getcwd()) + '\\local\\' + message[:5] + ".png"},
+        overlay=False
       )
-    except:
-      print("Error sending message to GPT-3")
+      utils.obsClient.set_scene_item_enabled(
+        scene_name=utils.config["obs_settings"]["scene_name"],
+        item_id=utils.getItemId(location),
+        enabled=True
+      )
+      self.resetConversation()
+    else:
+      message = message.replace("Action: ", "")
+      self.messages.append({"role": "user", "content": message})
+    
+      print("Sending message to GPT-3")
+      print(self.messages)
+
+      try:
+        openai.api_key = self.openai_api_key
+        response = openai.ChatCompletion.create(
+          model="gpt-3.5-turbo",
+          messages=self.messages,
+        )
+      except:
+        print("Error sending message to GPT-3")
+        print(response)
+        return
+
       print(response)
-      return
 
-    print(response)
+      self.buildConversation(response["choices"][0]["message"]["content"])
 
-    self.buildConversation(response["choices"][0]["message"]["content"])
+      self.messages.append({"role": "assistant", "content": response["choices"][0]["message"]["content"]})
 
-    self.messages.append({"role": "assistant", "content": response["choices"][0]["message"]["content"]})
+      # if token number is getting high, remove the oldest message
+      if response["usage"]["prompt_tokens"] > 3500:
+        print("Removing oldest message.")
+        print(self.messages[1])
+        self.messages.pop(1)
 
-    # if token number is getting high, remove the oldest message
-    if response["usage"]["prompt_tokens"] > 3500:
-      print("Removing oldest message.")
-      print(self.messages[1])
-      self.messages.pop(1)
+  def splitMessages(self, s, n=200):
+    segments = []
+    start = 0
 
+    while start < len(s):
+        # If the remaining part of the string is shorter than n, just append it to the segments
+        if len(s) - start <= n:
+            segments.append(s[start:])
+            break
+
+        # Extract the substring starting from the nth character from the current starting point
+        remainder = s[start + n:]
+
+        # Find the next punctuation mark in the remainder
+        splitPoint = next((i for i, char in enumerate(remainder) if char in ['.','!','?']), None)
+
+        # If a punctuation mark is found, append the segment up to that point to the segments
+        if splitPoint is not None:
+            segments.append(s[start:start + n + splitPoint + 1])
+            start += n + splitPoint + 1
+        else:
+            # If no punctuation is found, append the next n characters and move on
+            segments.append(s[start:start + n])
+            start += n
+
+    return segments
+  
   def buildConversation(self, message):
     """
     Builds a conversation by generating voice lines for each message in the input message string.
@@ -162,11 +214,32 @@ class ChatGPTDM:
     """
     # make sure that angle brackets are on their own line
     message = message.replace("<", "\n<")
+
+    # split up messages that are too long into their own messages
+    allMessages = []
+    speakingCharacter = "GM"
+    for line in message.splitlines():
+      if (line == ""):
+        speakingCharacter = "GM"
+        continue
+      if ("<" in line):
+        speakingCharacter = line.split("<")[1].split(">")[0]
+      else:
+        speakingCharacter = "GM"
+      if len(line) > 150:
+        splitMessages = self.splitMessages(line)
+        for x in range(0, len(splitMessages)):
+          if x == 0:
+            allMessages.append(splitMessages[x])
+          else:
+            # make sure the character is still speaking
+            allMessages.append("<" + speakingCharacter + "> " + splitMessages[x])
+      else:
+        allMessages.append(line)
     
+    print(allMessages)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-      for line in message.splitlines():
-        if (line == ""):
-          continue
+      for line in allMessages:
         if ("<" in line):
           character = line.split("<")[1].split(">")[0]
         else:
@@ -176,8 +249,11 @@ class ChatGPTDM:
         NPCIndex = next((index for (index, NPC) in enumerate(self.NPCList) if NPC.getName() == character), None)
         print("NPCIndex is " + str(NPCIndex))
         if NPCIndex is None:
-          # randomly pick a voice for the character and add it to the list
-          self.NPCList.append(ChatGPTNPC(character, self.voiceList[random.randint(0, len(self.voiceList) - 1)]))
+          # randomly pick a voice for the character and add it to the list, try to check for male/female but not perfect
+          if 'female' in line:
+            self.NPCList.append(ChatGPTNPC(character, self.femaleVoiceList[random.randint(0, len(self.femaleVoiceList) - 1)]))
+          else:
+            self.NPCList.append(ChatGPTNPC(character, self.maleVoiceList[random.randint(0, len(self.maleVoiceList) - 1)]))
           NPCIndex = len(self.NPCList) - 1
         print("NPCIndex is " + str(NPCIndex))
         self.NPCList[NPCIndex].incrementMessageCount()
@@ -196,8 +272,18 @@ class ChatGPTDM:
     for NPCIndex, messageId, message in self.conversationOrder:
       self.playNPCMessage(NPCIndex, messageId, message)
       time.sleep(0.15)
+    self.resetConversation()
 
-    # reset the conversation order and message counts
+  def resetConversation(self):
+    """
+    Resets the conversation order and message counts.
+
+    Args:
+      None
+
+    Returns:
+      None
+    """
     self.conversationOrder = []
     self.doingConversation = False
     self.conversationCount += 1
@@ -234,16 +320,29 @@ class ChatGPTDM:
     """
     # assign the character to a slot if they aren't already
     if (self.NPCList[NPCIndex].hasLocation() == False):
-      if (self.currentNPCCount == 4):
-        # all slots are full, so we need to rotate out the oldest character
-        self.currentNPCCount = 0
-      self.NPCList[NPCIndex].setLocation("NPC" + str(self.currentNPCCount))
-      self.currentNPCCount += 1
+      self.NPCList[NPCIndex].setLocation(self.getNextLocation())
 
     # pulse the character using the opacity to simulate talking
     self.NPCList[NPCIndex].changeImageToNPC()
     self.NPCList[NPCIndex].pulseCharacter(message, length)
     return
+
+  def getNextLocation(self):
+    """
+    Returns the next available location for a character to be assigned to.
+
+    Args:
+      None
+
+    Returns:
+      str: The next available location for a character to be assigned to.
+    """
+    if (self.currentNPCCount == 4):
+      # all slots are full, so we need to rotate out the oldest character
+      self.currentNPCCount = 0
+    temp = self.currentNPCCount
+    self.currentNPCCount += 1
+    return "NPC" + str(temp)
 
   def generateVoiceLine(self, message, NPCIndex, characterChatId):
     """
@@ -270,27 +369,9 @@ class ChatGPTDM:
     # generate the message
     try:
       print("\nGenerating voice for " + self.NPCList[NPCIndex].getName() + " message " + message + " with id " + str(characterChatId))
-      # if AWS is enabled, use Polly to generate the voice line
-      if utils.config["aws_settings"]["enabled"]:
-        response = self.polly_client.synthesize_speech(VoiceId=self.NPCList[NPCIndex].getVoice(),
-          OutputFormat='mp3', 
-          Text = message,
-          Engine = 'standard')
-
-        print("\nWriting to " + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + ".mp3")
-        file = open("local\\" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + '.mp3', 'wb')
-        file.write(response['AudioStream'].read())
-        file.close()
-      # otherwise use ElevenLabs to generate the voice line
-      else:
-        elevenlabs.save(
-          elevenlabs.generate(
-            message, self.eleven_labs_api_key, self.NPCList[NPCIndex].getVoice()
-          ),
-          "local\\" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId) + ".mp3"
-        )
+      filename = str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(characterChatId)
+      utils.createVoiceLine(self.NPCList[NPCIndex].getVoice(), message, filename)
       return
     except:
-      print("Error generating message for " + self.NPCList[NPCIndex].getName() + " message " + message + " with id " + str(characterChatId) + "\n")
-      print(response)        
+      print("Error generating message for " + self.NPCList[NPCIndex].getName() + " message " + message + " with id " + str(characterChatId) + "\n")   
       return

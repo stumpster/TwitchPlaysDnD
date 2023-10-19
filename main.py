@@ -25,6 +25,14 @@ filelist = [ f for f in os.listdir("local") if f.endswith(".mp3") ]
 for f in filelist:
   os.remove(os.path.join("local", f))
 
+filelist = [ f for f in os.listdir("local") if f.endswith(".png") ]
+for f in filelist:
+  os.remove(os.path.join("local", f))
+
+filelist = [ f for f in os.listdir("local") if f.endswith(".jpeg") ]
+for f in filelist:
+  os.remove(os.path.join("local", f))
+
 # create chat manager
 ChatManager = ChatManager()
 

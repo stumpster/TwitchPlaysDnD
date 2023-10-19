@@ -67,12 +67,12 @@ class ChatManager:
     if self.chatGPTDMEnabled:
       if message in self.msgShortcutList.keys():
         self.actionPollList[self.msgShortcutList[message]] += 1
-      elif message.startswith("!submit"):
+      elif message.startswith("!submit") or message.startswith("!draw"):
         # if the GM isn't in conversation, start a poll if there isn't one already
         if self.ChatGPTDM.getConversationStatus() == False and self.pollStarted == False:
           self.startPoll()
 
-        message = message.replace("!submit ", "")
+        message = message.replace("!submit ", "Action: ").replace("!draw ", "Draw: ")
         self.actionPollList[message] = 1
         self.msgShortcutList["!"+str(self.msgShortcutCount)] = message
         self.msgShortcutCount += 1
@@ -135,7 +135,7 @@ class ChatManager:
     self.msgShortcutList = {}
     self.msgShortcutCount = 1
     with open("local/poll.txt", "w") as f:
-      f.write("")
+      f.write("Polling is open! Type !submit or !draw followed by your action or drawing to submit it.")
 
   def muteCharacters(self):
     # prevent messages from being processed so no character text is written and no voicelines are spoken
@@ -161,6 +161,8 @@ class ChatManager:
       print("Total value of die is " + str(value))
     
     value += bonus
+    with open("local/poll.txt", "w") as f:
+      f.write("The dice result is a " + str(value))
     with open("local/diceresult.txt", "w") as f:
       print("Writing to diceresult.txt")
       f.write(str(value))
@@ -183,7 +185,7 @@ class ChatManager:
     utils.hideItem("CritFail")
 
     if self.chatGPTDMEnabled:
+      utils.showItem("Poll")
       self.ChatGPTDM.chatInput("The dice result is a " + str(value))
       self.resetPoll()
       self.stopPoll()
-      utils.showItem("Poll")
