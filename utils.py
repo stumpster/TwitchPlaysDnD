@@ -3,10 +3,10 @@ import boto3
 import elevenlabs
 import json
 import obsws_python as obs
-import openai
 import os
 import requests
 
+from openai import OpenAI
 from PIL import Image
 
 with open('config.json') as f:
@@ -105,51 +105,54 @@ def stripMessage(message):
     message = message[:message.find('[')] + message[message.find(']')+1:]
   return message
 
-def generateImage(name, characterDescription, useOpenAI=False):
+def generateImage(name, characterDescription):
   """
   Generates an image for a given character description using either OpenAI or Bing.
 
   Args:
   - name (str): The name of the character.
   - characterDescription (str): A description of the character.
-  - useOpenAI (bool): Whether to use OpenAI to generate the image. Defaults to False.
 
   Returns:
   - None
   """
-  if useOpenAI:
+  if config["chatgpt_settings"]["art_enabled"]:
     print("Using openAI to generate image")
-    
-    openai.api_key = config["chatgpt_settings"]["api_key"]
-    response = openai.Image.create(
+
+    client = OpenAI(api_key = config["chatgpt_settings"]["api_key"])
+
+    response = client.images.generate(
+      model="dall-e-3",
       prompt=characterDescription + ", digital art, in a Dungeons and Dragons setting",
+      size="1024x1024",
+      quality="standard",
       n=1,
-      size="512x512"
     )
-    image_url = response['data'][0]['url']
+
+    image_url = response.data[0].url
 
     # download the image
     image_response = requests.get(image_url)
-    with open("local/" + name + ".png", "wb") as f:
+    with open("local/" + name + "_0.jpeg", "wb") as f:
       f.write(image_response.content)
 
   else:
     print("Using Bing to generate image")
     bingImageCreator.save_images(
-      bingImageCreator.get_images(characterDescription + ", digital art, in a Dungeons and Dragons setting"),
+      bingImageCreator.get_images(characterDescription + " digital art in a Dungeons and Dragons setting"),
       output_dir=os.getcwd() + "\\local\\",
       file_name=name,
       download_count=1
     )
 
-    # convert the image to a png
-    if os.path.isfile("local/" + name + "_0.jpeg"):
-      print("Converting " + name + ".jpeg to " + name + ".png")
-      im = Image.open("local/" + name + "_0.jpeg")
-      rgb_im = im.convert('RGB')
-      rgb_im = rgb_im.resize((512, 512))
-      rgb_im.save("local/" + name + ".png")
-      os.remove("local/" + name + "_0.jpeg")
+  # shrink image to 512x512
+  if os.path.isfile("local/" + name + "_0.jpeg"):
+    print("Converting " + name + ".jpeg to " + name + ".png")
+    im = Image.open("local/" + name + "_0.jpeg")
+    rgb_im = im.convert('RGB')
+    rgb_im = rgb_im.resize((512, 512))
+    rgb_im.save("local/" + name + ".png")
+    os.remove("local/" + name + "_0.jpeg")
   return
 
 def createVoiceLine(voice, message, filename):
@@ -164,25 +167,29 @@ def createVoiceLine(voice, message, filename):
   Returns:
     None
   """
-  if config["aws_settings"]["enabled"]:
-    response = polly_client.synthesize_speech(VoiceId=voice,
-      OutputFormat='mp3', 
-      Text = message,
-      Engine = 'standard')
+  try:
+    if config["aws_settings"]["enabled"]:
+      response = polly_client.synthesize_speech(VoiceId=voice,
+        OutputFormat='mp3', 
+        Text = message,
+        Engine = 'standard')
 
-    print("\nWriting to " + filename + ".mp3")
-    file = open("local\\" + filename + '.mp3', 'wb')
-    file.write(response['AudioStream'].read())
-    file.close()
-  # otherwise use ElevenLabs to generate the voice line
-  else:
-    elevenlabs.save(
-      elevenlabs.generate(
-        text=message, voice=voice
-      ),
-      "local\\" + filename + ".mp3"
-    )
-
+      print("\nWriting to " + filename + ".mp3")
+      file = open("local\\" + filename + '.mp3', 'wb')
+      file.write(response['AudioStream'].read())
+      file.close()
+    # otherwise use ElevenLabs to generate the voice line
+    else:
+      elevenlabs.save(
+        elevenlabs.generate(
+          text=message, voice=voice
+        ),
+        "local\\" + filename + ".mp3"
+      )
+  except:
+    #print error that we ran into
+    print("Error creating voice line for " + filename)
+    
 def getVoiceClassFromName(name):
   """
   Returns the voice for a given voice name.

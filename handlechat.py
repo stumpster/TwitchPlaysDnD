@@ -15,7 +15,7 @@ class ChatManager:
 
     with open('config.json') as f:
       config = json.load(f)
-    self.chatGPTDMEnabled = config["chatgpt_settings"]["enabled"]
+    self.chatGPTDMEnabled = config["chatgpt_settings"]["dm_enabled"]
     
     if not self.chatGPTDMEnabled:
       for character in config["characters"]:
@@ -35,14 +35,16 @@ class ChatManager:
     self.pollStartTime = 0
     self.msgShortcutList = {}
     self.msgShortcutCount = 1
-    self.timerLength = 20
+    self.timerLength = 40
 
     if self.chatGPTDMEnabled:
       self.ChatGPTDM = ChatGPTDM()
       self.ChatGPTDM.clearAllMessages()
+      self.resetPoll()
 
     with open("local/timer.txt", "w") as f:
       f.write(str(self.timerLength-1))
+
     
   def updateUser(self, user):
     # add a user to the list of users with the time of their latest message
@@ -63,21 +65,25 @@ class ChatManager:
           character.setPlayer(random_key)
           break
 
-  def handleMessage(self, user, message):
+  def handleMessage(self, user, message, isSub):
     if self.chatGPTDMEnabled:
+      amountToIncrease = 1
+      # if the user is a subscriber, modify the amount increased by the config
+      if isSub:
+        amountToIncrease = utils.config["twitch_settings"]["subscriber_modifier"]
       if message in self.msgShortcutList.keys():
-        self.actionPollList[self.msgShortcutList[message]] += 1
+        self.actionPollList[self.msgShortcutList[message]] += amountToIncrease
       elif message.startswith("!submit") or message.startswith("!draw"):
         # if the GM isn't in conversation, start a poll if there isn't one already
         if self.ChatGPTDM.getConversationStatus() == False and self.pollStarted == False:
           self.startPoll()
 
         message = message.replace("!submit ", "Action: ").replace("!draw ", "Draw: ")
-        self.actionPollList[message] = 1
+        self.actionPollList[message] = amountToIncrease
         self.msgShortcutList["!"+str(self.msgShortcutCount)] = message
         self.msgShortcutCount += 1
       elif message in self.actionPollList.keys():
-        self.actionPollList[message] += 1
+        self.actionPollList[message] += amountToIncrease
       if self.pollStarted:
         self.updatePollList()
 

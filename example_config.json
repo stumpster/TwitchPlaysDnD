@@ -4,6 +4,9 @@
     "app_secret": "fill-me-in",
     "target_channel": "fill-me-in"
   },
+  "twitch_modifiers": {
+    "subscriber_modifier": 2
+  },
   "characters": {
     "character_name": {
       "voice": "fill-me-in",
@@ -27,7 +30,9 @@
   },
   "chatgpt_settings": {
     "api_key": "fill-me-in",
-    "enabled": false
+    "model": "gpt-3.5-turbo-1106",
+    "dm_enabled": true,
+    "art_enabled": false
   },
   "bing_settings": {
     "auth_cookie": "fill-me-in"

@@ -48,7 +48,7 @@ async def on_ready(ready_event: EventData):
 async def on_message(msg: ChatMessage):
   #test the time that the message takes to process
   print(f'in {msg.room.name}, {msg.user.name} said: {msg.text}')
-  ChatManager.handleMessage(user=msg.user.name, message=msg.text)
+  ChatManager.handleMessage(user=msg.user.name, message=msg.text, isSub=msg.user.subscriber)
 
 # will roll the dice based on the config set up in the JSON file
 async def roll_command(cmd: ChatCommand):

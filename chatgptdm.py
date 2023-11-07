@@ -3,11 +3,12 @@ import concurrent.futures
 import elevenlabs
 import glob
 import librosa
-import openai
 import os
 import random
 import string
 import time
+
+from openai import OpenAI
 
 # from character import Character
 from chatgptnpc import ChatGPTNPC
@@ -15,7 +16,7 @@ import utils
 
 class ChatGPTDM:
   def __init__(self):
-    self.openai_api_key = utils.config["chatgpt_settings"]["api_key"]
+    self.openai_client = OpenAI(api_key=utils.config["chatgpt_settings"]["api_key"])
 
     self.systemmsg = '''You are a game master who is leading a party though a campaign of Dungeons and Dragons.'''
     self.systemmsg += ' The players are: '
@@ -35,6 +36,8 @@ class ChatGPTDM:
     For example, if the character is a male dwarf bartender with an eyepatch, you would write 
     <Bob> [male dwarf bartender with eyepatch] Hello, how are you?
     If you are speaking as the game master that text should not be on the same line as text assigned to a character.
+    If you are describing a scene or an important item, put the description inside curly brackets. As an example, describing a magic item might look like:
+    The players find the Sword of Light {a sword that glows with a bright light when held by a good character}.
     '''
     self.messages = [{"role": "system", "content": self.systemmsg}]
 
@@ -84,8 +87,9 @@ class ChatGPTDM:
         self.NPCList[len(self.NPCList)-1].setLocation(name)
         self.NPCList[len(self.NPCList)-1].changeImageToNPC()
 
-
-    # print(resp)
+    # clear out the NPC images
+    for x in range(0, 4):
+      utils.hideItem("NPC" + str(x))
 
   def clearAllMessages(self):
     """
@@ -153,13 +157,12 @@ class ChatGPTDM:
       print(self.messages)
 
       try:
-        openai.api_key = self.openai_api_key
-        response = openai.ChatCompletion.create(
-          model="gpt-3.5-turbo",
-          messages=self.messages,
+        response = self.openai_client.chat.completions.create(
+          model = utils.config["chatgpt_settings"]["model"],
+          messages = self.messages,
         )
       except:
-        print("Error sending message to GPT-3")
+        print("Error sending message to GPT")
         print(response)
         return
 
@@ -202,6 +205,13 @@ class ChatGPTDM:
 
     return segments
   
+  def generateArt(self, message):
+    artList = []
+    for line in message.splitlines():
+      if line.contains("{"):
+        artList.append("{" + line.split("{")[1].split("}")[0] + "}")
+    return artList
+
   def buildConversation(self, message):
     """
     Builds a conversation by generating voice lines for each message in the input message string.
@@ -216,7 +226,7 @@ class ChatGPTDM:
     message = message.replace("<", "\n<")
 
     # split up messages that are too long into their own messages
-    allMessages = []
+    allMessages = self.generateArt(message)
     speakingCharacter = "GM"
     for line in message.splitlines():
       if (line == ""):
@@ -240,7 +250,12 @@ class ChatGPTDM:
     print(allMessages)
     with concurrent.futures.ThreadPoolExecutor() as executor:
       for line in allMessages:
-        if ("<" in line):
+        print("Processing line " + line + "\n")
+        if "{" in line:
+          print("Generating artwork\n")
+          artMessage = line.split("{")[1].split("}")[0]
+          executor.submit(utils.generateImage, artMessage[:5], artMessage)
+        if "<" in line:
           character = line.split("<")[1].split(">")[0]
         else:
           character = "GM"
@@ -302,8 +317,12 @@ class ChatGPTDM:
     Returns:
       None
     """
-    lengthOfRecording = librosa.get_duration(path="local/" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(messageId) + '.mp3')
-    os.startfile(os.getcwd() + "/local/" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(messageId) + '.mp3')
+    try:
+      lengthOfRecording = librosa.get_duration(path="local/" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(messageId) + '.mp3')
+      os.startfile(os.getcwd() + "/local/" + str(self.conversationCount) + self.NPCList[NPCIndex].getName() + str(messageId) + '.mp3')
+    except:
+      # if for some reason we have an issue with the audio file, just show the text for some length of time
+      lengthOfRecording = 5
     self.showAndPulseNPC(NPCIndex, message, lengthOfRecording)
 
   def showAndPulseNPC(self, NPCIndex, message, length):
